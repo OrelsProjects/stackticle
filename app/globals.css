@@ -1,26 +1,66 @@
 @import "tailwindcss";
 
+/*
+  StackTicle design tokens — copied verbatim from
+  design_handoff_stackticle_landing/landing.css.
+  Do not let these drift from the landing/product surfaces.
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #0a0a0b;
+  --bg-2: #0d0d0f;
+  --surface: #131315;
+  --surface-2: #1a1a1d;
+  --surface-3: #222226;
+  --border: #232328;
+  --border-2: #2c2c32;
+  --text: #ececee;
+  --text-2: #b9b9bf;
+  --muted: #6e6e76;
+  --muted-2: #4a4a51;
+  --accent: #7de3b6;
+  --accent-2: #4ec99a;
+  --accent-ink: #0a1a14;
+  --danger: #ff8367;
+  --danger-ink: #2a0d07;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--bg);
+  --color-bg-2: var(--bg-2);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-2: var(--border-2);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-muted: var(--muted);
+  --color-muted-2: var(--muted-2);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
+  --color-danger-ink: var(--danger-ink);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11", "tnum";
+}
+
+::selection {
+  background: color-mix(in oklch, var(--accent) 30%, transparent);
+  color: var(--text);
 }
