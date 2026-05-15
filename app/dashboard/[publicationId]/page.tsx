@@ -8,7 +8,8 @@ import {
 } from "@/lib/posts";
 import { AppHeader } from "@/components/dashboard/app-header";
 import { PostsView } from "@/components/dashboard/posts-view";
-import { PostStatus } from "@prisma/client";
+import { PostsSyncOnMount } from "@/components/dashboard/posts-sync-on-mount";
+import { PostStatus } from "@/generated/client";
 import { publicationBaseUrl } from "@/lib/publication-url";
 
 const VALID = new Set<PostStatus>([
@@ -50,6 +51,14 @@ export default async function PublicationPage({
         user={session.user}
       />
       <main className="flex-1 mx-auto w-full max-w-7xl px-6 py-8">
+        <PostsSyncOnMount
+          publicationId={pub.id}
+          newsletterUrl={publicationBaseUrl({
+            subdomain: pub.subdomain,
+            customDomain: pub.customDomain,
+          })}
+          lastSyncedAt={pub.lastSyncedAt?.toISOString() ?? null}
+        />
         <PostsView
           publication={{
             id: pub.id,

@@ -1,93 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { SyncPayload, type ExtensionPostT, type PublicationPayloadT } from "@/lib/sync-schema";
-import { PostStatus, PostType, Prisma } from "@prisma/client";
+import { SyncUserPayload } from "@/lib/sync-schema";
 import { revalidatePath } from "next/cache";
-
-function parseDate(s: string | null | undefined): Date | null {
-  if (!s) return null;
-  const d = new Date(s);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function mapPost(p: ExtensionPostT, status: PostStatus) {
-  return {
-    substackId: p.id,
-    uuid: p.uuid ?? null,
-    type: p.type as PostType,
-    status,
-    title: p.title,
-    draftTitle: p.draft_title,
-    postDate: parseDate(p.post_date),
-    triggerAt: parseDate(p.trigger_at),
-    coverImage: p.cover_image,
-    bylines: (p.bylines ?? []) as unknown as Prisma.InputJsonValue,
-    stats: (p.stats ?? {}) as unknown as Prisma.InputJsonValue,
-    headlineTest: (p.headlineTest ?? null) as unknown as Prisma.InputJsonValue,
-  };
-}
-
-async function upsertPublication(userId: string, pub: PublicationPayloadT) {
-  const existing = await prisma.publication.findUnique({
-    where: { substackId: pub.substackId },
-  });
-  if (existing && existing.userId !== userId) {
-    throw new Error(`Publication ${pub.substackId} is owned by another account`);
-  }
-  return prisma.publication.upsert({
-    where: { substackId: pub.substackId },
-    create: {
-      substackId: pub.substackId,
-      userId,
-      name: pub.name,
-      subdomain: pub.subdomain,
-      customDomain: pub.customDomain ?? null,
-      logoUrl: pub.logoUrl ?? null,
-      isPrimary: pub.isPrimary,
-      paymentsState: pub.paymentsState ?? null,
-      lastSyncedAt: new Date(),
-    },
-    update: {
-      name: pub.name,
-      subdomain: pub.subdomain,
-      customDomain: pub.customDomain ?? null,
-      logoUrl: pub.logoUrl ?? null,
-      isPrimary: pub.isPrimary,
-      paymentsState: pub.paymentsState ?? null,
-      lastSyncedAt: new Date(),
-    },
-  });
-}
-
-async function replacePosts(
-  publicationId: string,
-  status: PostStatus,
-  rows: ExtensionPostT[],
-) {
-  const mapped = rows.map((r) => mapPost(r, status));
-  const incomingIds = new Set(mapped.map((m) => m.substackId));
-
-  // Delete rows for this status that no longer exist on Substack.
-  await prisma.post.deleteMany({
-    where: {
-      publicationId,
-      status,
-      substackId: { notIn: Array.from(incomingIds) },
-    },
-  });
-
-  // Upsert each (batched serially — most users have <500 posts).
-  for (const m of mapped) {
-    await prisma.post.upsert({
-      where: {
-        publicationId_substackId: { publicationId, substackId: m.substackId },
-      },
-      create: { publicationId, ...m, syncedAt: new Date() },
-      update: { ...m, syncedAt: new Date() },
-    });
-  }
-}
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -102,7 +17,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
 
-  const parsed = SyncPayload.safeParse(body);
+  const parsed = SyncUserPayload.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "invalid payload", issues: parsed.error.flatten() },
@@ -111,53 +26,76 @@ export async function POST(req: Request) {
   }
 
   const userId = session.user.id;
-  const synced: { publicationId: string; counts: Record<PostStatus, number> }[] = [];
+  const { profile, publications } = parsed.data;
+  const syncedAt = new Date(parsed.data.syncedAt);
+  const now = Number.isNaN(syncedAt.getTime()) ? new Date() : syncedAt;
 
-  for (const pub of parsed.data.publications) {
-    const sync = await prisma.syncLog.create({
-      data: { publicationId: "", status: "ok" },
+
+  try {
+    // Persist Substack identity on the user.
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        substackUserId: profile.id,
+        substackHandle: profile.handle,
+        substackName: profile.name,
+        substackPhotoUrl: profile.photoUrl ?? null,
+      },
     });
 
-    try {
-      const dbPub = await upsertPublication(userId, pub);
-      await prisma.syncLog.update({
-        where: { id: sync.id },
-        data: { publicationId: dbPub.id },
+    // Upsert each publication. Guard against ownership conflicts.
+    const stored: { id: string; substackId: number }[] = [];
+    for (const entry of publications) {
+      const pub = entry.publication;
+      const existing = await prisma.publication.findUnique({
+        where: { substackId: pub.id },
       });
-
-      await replacePosts(dbPub.id, PostStatus.published, pub.posts.published);
-      await replacePosts(dbPub.id, PostStatus.scheduled, pub.posts.scheduled);
-      await replacePosts(dbPub.id, PostStatus.drafts, pub.posts.drafts);
-
-      await prisma.syncLog.update({
-        where: { id: sync.id },
-        data: { status: "ok", finishedAt: new Date() },
-      });
-
-      synced.push({
-        publicationId: dbPub.id,
-        counts: {
-          published: pub.posts.published.length,
-          scheduled: pub.posts.scheduled.length,
-          drafts: pub.posts.drafts.length,
+      if (existing && existing.userId !== userId) {
+        return NextResponse.json(
+          {
+            error: `Publication ${pub.id} is already linked to another StackTicle account.`,
+          },
+          { status: 409 },
+        );
+      }
+      const saved = await prisma.publication.upsert({
+        where: { substackId: pub.id },
+        create: {
+          substackId: pub.id,
+          userId,
+          name: pub.name,
+          subdomain: pub.subdomain,
+          customDomain: pub.custom_domain ?? null,
+          logoUrl: pub.logo_url ?? null,
+          isPrimary: entry.isPrimary,
+          paymentsState: pub.payments_state ?? null,
+          lastSyncedAt: now,
+        },
+        update: {
+          name: pub.name,
+          subdomain: pub.subdomain,
+          customDomain: pub.custom_domain ?? null,
+          logoUrl: pub.logo_url ?? null,
+          isPrimary: entry.isPrimary,
+          paymentsState: pub.payments_state ?? null,
+          // lastSyncedAt is bumped by the posts-sync route; not touched here.
         },
       });
-    } catch (err) {
-      await prisma.syncLog.update({
-        where: { id: sync.id },
-        data: {
-          status: "error",
-          error: err instanceof Error ? err.message : String(err),
-          finishedAt: new Date(),
-        },
-      });
-      return NextResponse.json(
-        { error: err instanceof Error ? err.message : "sync failed" },
-        { status: 500 },
-      );
+      stored.push({ id: saved.id, substackId: saved.substackId });
     }
-  }
 
-  revalidatePath("/dashboard", "layout");
-  return NextResponse.json({ ok: true, synced });
+    // Remove publications the user previously had but that are no longer in the
+    // sync payload (left the publication, lost access, etc.).
+    await prisma.publication.deleteMany({
+      where: {
+        userId,
+        substackId: { notIn: stored.map((s) => s.substackId) },
+      },
+    });
+
+    revalidatePath("/dashboard", "layout");
+    return NextResponse.json({ ok: true, publications: stored });
+  } catch (error) {
+    return NextResponse.json({ error: "sync failed" }, { status: 500 });
+  }
 }

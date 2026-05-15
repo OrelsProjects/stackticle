@@ -1,32 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSync } from "@/features/sync/use-sync";
+import { useSyncPosts } from "@/features/sync/use-sync";
 import { useAppSelector } from "@/store";
 import type { PublicationLite } from "./posts-view";
 
 export function SyncBar({ publication }: { publication: PublicationLite }) {
-  const sync = useSync();
+  const sync = useSyncPosts();
   const syncState = useAppSelector((s) => s.sync);
-  const [me, setMe] = useState<{ substackUserId: number; substackHandle: string } | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    fetch("/api/me", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (active && data?.substackUserId && data?.substackHandle) {
-          setMe({
-            substackUserId: data.substackUserId,
-            substackHandle: data.substackHandle,
-          });
-        }
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const busy =
     syncState.phase === "fetching-publications" ||
@@ -38,8 +18,10 @@ export function SyncBar({ publication }: { publication: PublicationLite }) {
     : "never";
 
   function onSync() {
-    if (!me) return;
-    void sync.run(me.substackUserId, me.substackHandle);
+    void sync.run({
+      publicationId: publication.id,
+      newsletterUrl: publication.baseUrl,
+    });
   }
 
   return (
@@ -50,10 +32,10 @@ export function SyncBar({ publication }: { publication: PublicationLite }) {
       <button
         type="button"
         onClick={onSync}
-        disabled={busy || !me}
+        disabled={busy}
         className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-1.5 text-sm hover:border-border-2 disabled:opacity-50"
       >
-        {busy ? syncState.message ?? "Syncing…" : "Sync"}
+        {busy ? (syncState.message ?? "Syncing…") : "Sync posts"}
       </button>
     </div>
   );

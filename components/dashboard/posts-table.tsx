@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { PostStatus } from "@prisma/client";
+import { PostStatus } from "@/generated/client";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { toggle, set as setSelection } from "@/store/selection-slice";
 import { monthGroupKey, shortDate, compactNumber } from "@/lib/format";

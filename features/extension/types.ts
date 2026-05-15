@@ -213,8 +213,30 @@ export interface DeleteArticleResult {
   error?: string;
 }
 
+// --- syncUser bundle: identity + publication memberships, no posts.
+
+export interface SyncUserProfile {
+  id: number;
+  handle: string;
+  name: string;
+  photoUrl: string | null;
+}
+
+export interface SyncUserPublication {
+  publication: Publication;
+  role: "admin" | "writer";
+  isPrimary: boolean;
+}
+
+export interface SyncUserResult {
+  syncedAt: string; // ISO timestamp from the extension
+  profile: SyncUserProfile;
+  publications: SyncUserPublication[];
+}
+
 // Background message envelope (extension API_REQUEST).
 export type ExtensionAction =
+  | "syncUser"
   | "fetchPublishedPosts"
   | "fetchScheduledPosts"
   | "fetchDraftPosts"
@@ -229,11 +251,11 @@ export interface ExtensionRequest {
 }
 
 export interface ExtensionSuccess<T> {
-  ok: true;
+  success: true;
   data: T;
 }
 export interface ExtensionFailure {
-  ok: false;
+  success: false;
   error: string;
 }
 export type ExtensionResponse<T> = ExtensionSuccess<T> | ExtensionFailure;

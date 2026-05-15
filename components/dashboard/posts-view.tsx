@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PostStatus } from "@prisma/client";
+import { PostStatus } from "@/generated/client";
 import { PostsTable, type PostRow } from "./posts-table";
 import { FloatingActionBar } from "./floating-action-bar";
 import { UndoToasts } from "./undo-toasts";

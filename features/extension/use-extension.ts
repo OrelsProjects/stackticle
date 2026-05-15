@@ -5,11 +5,8 @@ import type {
   DeleteArticleResult,
   ExtensionAction,
   ExtensionResponse,
-  PostOrderBy,
-  PostOrderDirection,
   PostsResponse,
-  PostStatus,
-  UserPublicationsResponse,
+  SyncUserResult,
 } from "./types";
 
 const EXTENSION_ID =
@@ -67,7 +64,7 @@ function sendMessage<T>(
             reject(new ExtensionUnavailableError());
             return;
           }
-          if (!res.ok) {
+          if (!res.success) {
             reject(new Error(res.error || "Extension call failed"));
             return;
           }
@@ -82,18 +79,7 @@ function sendMessage<T>(
 
 export interface UseExtension {
   isInstalled: () => boolean;
-  getUserPublications: (
-    userId: number,
-    handle: string,
-  ) => Promise<UserPublicationsResponse>;
-  fetchPosts: (args: {
-    newsletterUrl: string;
-    status: PostStatus;
-    offset?: number;
-    limit?: number;
-    orderBy?: PostOrderBy;
-    orderDirection?: PostOrderDirection;
-  }) => Promise<PostsResponse>;
+  syncUser: () => Promise<SyncUserResult>;
   fetchPublishedPosts: (
     newsletterUrl: string,
     offset?: number,
@@ -122,24 +108,8 @@ export function useExtension(): UseExtension {
     );
   }, []);
 
-  const getUserPublications = useCallback(
-    (userId: number, handle: string) =>
-      sendMessage<UserPublicationsResponse>("getUserPublications", {
-        userId,
-        handle,
-      }),
-    [],
-  );
-
-  const fetchPosts = useCallback(
-    (args: {
-      newsletterUrl: string;
-      status: PostStatus;
-      offset?: number;
-      limit?: number;
-      orderBy?: PostOrderBy;
-      orderDirection?: PostOrderDirection;
-    }) => sendMessage<PostsResponse>("fetchPosts", args),
+  const syncUser = useCallback(
+    () => sendMessage<SyncUserResult>("syncUser", {}),
     [],
   );
 
@@ -185,8 +155,7 @@ export function useExtension(): UseExtension {
   return useMemo(
     () => ({
       isInstalled,
-      getUserPublications,
-      fetchPosts,
+      syncUser,
       fetchPublishedPosts,
       fetchScheduledPosts,
       fetchDraftPosts,
@@ -194,8 +163,7 @@ export function useExtension(): UseExtension {
     }),
     [
       isInstalled,
-      getUserPublications,
-      fetchPosts,
+      syncUser,
       fetchPublishedPosts,
       fetchScheduledPosts,
       fetchDraftPosts,

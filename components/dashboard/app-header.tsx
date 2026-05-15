@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { signOut } from "@/lib/auth";
-import type { Publication } from "@prisma/client";
+import type { Publication } from "@/generated/client";
 import { PublicationSwitcher } from "./publication-switcher";
 
 export function AppHeader({

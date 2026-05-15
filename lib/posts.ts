@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "./prisma";
-import { PostStatus } from "@prisma/client";
+import { PostStatus } from "@/generated/client";
 
 export async function getPublicationsForUser(userId: string) {
   return prisma.publication.findMany({
