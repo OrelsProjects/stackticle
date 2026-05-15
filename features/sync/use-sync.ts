@@ -43,9 +43,9 @@ export function useSync(): UseSync {
       try {
         dispatch(start({ phase: "fetching-publications", message: "Looking up your publications…" }));
         const pubsResp = await ext.getUserPublications(substackUserId, substackHandle);
-        const pubs = (pubsResp.publicationUsers ?? []).map((pu) => pu.publication);
+        const pubUsers = pubsResp.publicationUsers ?? [];
 
-        if (pubs.length === 0) {
+        if (pubUsers.length === 0) {
           throw new Error("No publications found for this Substack account.");
         }
 
@@ -69,7 +69,8 @@ export function useSync(): UseSync {
         } = { publications: [] };
 
         let done = 0;
-        for (const p of pubs) {
+        for (const pu of pubUsers) {
+          const p = pu.publication;
           const baseUrl = publicationBaseUrl(p);
           const [published, scheduled, drafts] = await Promise.all([
             fetchAll((offset, limit) => ext.fetchPublishedPosts(baseUrl, offset, limit)),
@@ -83,13 +84,13 @@ export function useSync(): UseSync {
             subdomain: p.subdomain,
             customDomain: p.custom_domain ?? null,
             logoUrl: p.logo_url ?? null,
-            isPrimary: p.is_primary,
+            isPrimary: pu.is_primary,
             paymentsState: p.payments_state ?? null,
             posts: { published, scheduled, drafts },
           });
 
           done++;
-          dispatch(progress({ done, total: pubs.length }));
+          dispatch(progress({ done, total: pubUsers.length }));
         }
 
         dispatch(start({ phase: "saving", message: "Saving…" }));
