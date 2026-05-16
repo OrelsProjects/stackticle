@@ -81,6 +81,10 @@ export default async function PublicationPage({
             postDate: p.postDate?.toISOString() ?? null,
             triggerAt: p.triggerAt?.toISOString() ?? null,
             stats: (p.stats as Record<string, number> | null) ?? null,
+            substackUrl:
+              status === "published" && p.uuid
+                ? `${publicationBaseUrl({ subdomain: pub.subdomain, customDomain: pub.customDomain })}/p/${p.uuid}`
+                : `${publicationBaseUrl({ subdomain: pub.subdomain, customDomain: pub.customDomain })}/publish/post/${p.substackId}`,
           }))}
         />
       </main>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { signOut } from "@/lib/auth";
 import type { Publication } from "@/generated/client";
 import { PublicationSwitcher } from "./publication-switcher";
+import { Button } from "@/components/ui/button";
 
 export function AppHeader({
   publications,
@@ -18,10 +19,10 @@ export function AppHeader({
   }
 
   return (
-    <header className="sticky top-0 z-10 border-b border-border bg-bg/80 backdrop-blur-md">
+    <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-6 h-14 flex items-center gap-4">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <span className="h-5 w-5 rounded-md bg-gradient-to-br from-accent to-accent-2" />
+          <span className="h-5 w-5 rounded-md bg-gradient-to-br from-primary to-primary" />
           <span className="font-semibold tracking-tight">StackTicle</span>
         </Link>
         {publications.length > 0 && (
@@ -46,15 +47,16 @@ export function AppHeader({
               className="h-7 w-7 rounded-full border border-border"
             />
           ) : (
-            <div className="h-7 w-7 rounded-full bg-surface-2 border border-border" />
+            <div className="h-7 w-7 rounded-full bg-card border border-border" />
           )}
           <form action={doSignOut}>
-            <button
+            <Button
+              clean
               type="submit"
-              className="text-xs text-text-2 hover:text-text"
+              className="text-xs text-foreground-2 hover:text-foreground"
             >
               Sign out
-            </button>
+            </Button>
           </form>
         </div>
       </div>

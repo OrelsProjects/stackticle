@@ -3,10 +3,11 @@ import { useDispatch, useSelector, type TypedUseSelectorHook } from "react-redux
 import selection from "./selection-slice";
 import sync from "./sync-slice";
 import undo from "./undo-slice";
+import nav from "./nav-slice";
 
 export const makeStore = () =>
   configureStore({
-    reducer: { selection, sync, undo },
+    reducer: { selection, sync, undo, nav },
   });
 
 export type AppStore = ReturnType<typeof makeStore>;

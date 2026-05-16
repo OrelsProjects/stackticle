@@ -51,7 +51,7 @@ export function useSync(): UseSync {
 
 async function fetchAll(
   fetcher: (offset: number, limit: number) => Promise<PostsResponse>,
-  pageSize = 50,
+  pageSize = 25,
 ): Promise<Post[]> {
   const out: Post[] = [];
   let offset = 0;

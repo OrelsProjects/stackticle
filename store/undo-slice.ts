@@ -6,6 +6,7 @@ export interface PendingDelete {
   newsletterUrl: string;
   postIds: number[]; // Substack post ids
   expiresAt: number; // epoch ms
+  pausedAt?: number; // epoch ms when hovering started; undefined = running
 }
 
 export interface UndoState {
@@ -27,8 +28,21 @@ const undoSlice = createSlice({
     clear(state) {
       state.pending = [];
     },
+    pause(state, action: PayloadAction<string>) {
+      const item = state.pending.find((p) => p.id === action.payload);
+      if (item && item.pausedAt === undefined) {
+        item.pausedAt = Date.now();
+      }
+    },
+    resume(state, action: PayloadAction<string>) {
+      const item = state.pending.find((p) => p.id === action.payload);
+      if (item && item.pausedAt !== undefined) {
+        item.expiresAt += Date.now() - item.pausedAt;
+        item.pausedAt = undefined;
+      }
+    },
   },
 });
 
-export const { enqueue, dismiss, clear } = undoSlice.actions;
+export const { enqueue, dismiss, clear, pause, resume } = undoSlice.actions;
 export default undoSlice.reducer;

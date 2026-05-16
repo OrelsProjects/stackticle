@@ -30,7 +30,7 @@ export default function RootLayout({
       lang="en"
       className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans")}
     >
-      <body className="min-h-full flex flex-col bg-bg text-text">
+      <body className="min-h-full flex flex-col bg-background text-foreground">
         <StoreProvider>{children}</StoreProvider>
       </body>
     </html>

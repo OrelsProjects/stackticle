@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
-import { useAppDispatch, useAppSelector } from "@/store";
+import { motion, AnimatePresence } from "framer-motion";
+import { useAppDispatch } from "@/store";
 import { clear as clearSelection } from "@/store/selection-slice";
 import { enqueue as enqueueUndo } from "@/store/undo-slice";
 import { postsToCsv, downloadCsv } from "@/features/export/csv";
 import type { PostRow } from "./posts-table";
 import type { PublicationLite } from "./posts-view";
+import { Button } from "@/components/ui/button";
 
-const UNDO_MS = 10_000;
+const UNDO_MS = 5_000;
 
 export function FloatingActionBar({
   publication,
@@ -32,8 +34,6 @@ export function FloatingActionBar({
     return () => window.removeEventListener("keydown", handler);
   }, [count, dispatch]);
 
-  if (count === 0) return null;
-
   function onDelete() {
     const expiresAt = Date.now() + UNDO_MS;
     dispatch(
@@ -56,17 +56,27 @@ export function FloatingActionBar({
 
   return (
     <div className="fixed inset-x-0 bottom-6 z-20 flex justify-center px-4 pointer-events-none">
-      <div className="pointer-events-auto flex items-center gap-1 rounded-2xl border border-border bg-bg-2/95 backdrop-blur px-2 py-1.5 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6),0_0_0_1px_color-mix(in_oklch,var(--accent)_20%,transparent)]">
-        <div className="px-3 py-1 rounded-lg bg-accent/10 text-accent font-mono text-xs">
-          {count} selected
-        </div>
-        <div className="w-px h-5 bg-border mx-1" />
-        <BarBtn label="Tag" disabled title="Coming soon — not in extension API" />
-        <BarBtn label="Export CSV" onClick={onExportCsv} />
-        <BarBtn label="Move" disabled title="Coming soon — not in extension API" />
-        <div className="w-px h-5 bg-border mx-1" />
-        <BarBtn label="Delete" onClick={onDelete} danger />
-      </div>
+      <AnimatePresence>
+        {count > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 24, scale: 0.94 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.94 }}
+            transition={{ type: "spring", stiffness: 480, damping: 36 }}
+            className="pointer-events-auto flex items-center gap-1 rounded-2xl border border-border bg-background/95 backdrop-blur px-2 py-1.5 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6),0_0_0_1px_color-mix(in_oklch,var(--primary)_20%,transparent)]"
+          >
+            <div className="px-3 py-1 rounded-lg bg-primary/10 text-primary font-mono text-xs">
+              {count} selected
+            </div>
+            <div className="w-px h-5 bg-border mx-1" />
+            {/* <BarBtn label="Tag" disabled title="Coming soon — not in extension API" /> */}
+            <BarBtn label="Export CSV" onClick={onExportCsv} />
+            {/* <BarBtn label="Move" disabled title="Coming soon — not in extension API" /> */}
+            <div className="w-px h-5 bg-border mx-1" />
+            <BarBtn label="Delete" onClick={onDelete} danger />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -85,21 +95,22 @@ function BarBtn({
   title?: string;
 }) {
   return (
-    <button
+    <Button
+      clean
       type="button"
       onClick={onClick}
       disabled={disabled}
       title={title}
       className={
-        "rounded-lg px-3 py-1.5 text-sm transition " +
+        "rounded-lg px-3 py-1.5 " +
         (disabled
-          ? "text-muted-2 cursor-not-allowed"
+          ? "text-muted-foreground cursor-not-allowed"
           : danger
-            ? "text-danger hover:bg-danger/10"
-            : "text-text-2 hover:text-text hover:bg-surface-2")
+            ? "text-destruction hover:bg-destruction/10"
+            : "text-muted-foreground hover:text-primary hover:bg-card")
       }
     >
       {label}
-    </button>
+    </Button>
   );
 }

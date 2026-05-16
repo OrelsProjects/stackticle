@@ -114,41 +114,59 @@ export function useExtension(): UseExtension {
   );
 
   const fetchPublishedPosts = useCallback(
-    (newsletterUrl: string, offset = 0, limit = 25) =>
-      sendMessage<PostsResponse>("fetchPublishedPosts", {
+    async (newsletterUrl: string, offset = 0, limit = 25) => {
+      const res = await sendMessage<PostsResponse>("fetchPosts", {
         newsletterUrl,
+        status: "published",
         offset,
         limit,
-      }),
+      });
+      return res;
+    },
     [],
   );
 
   const fetchScheduledPosts = useCallback(
-    (newsletterUrl: string, offset = 0, limit = 25) =>
-      sendMessage<PostsResponse>("fetchScheduledPosts", {
+    async (newsletterUrl: string, offset = 0, limit = 25) => {
+      const res = await sendMessage<PostsResponse>("fetchPosts", {
         newsletterUrl,
+        status: "scheduled",
         offset,
         limit,
-      }),
+        orderBy: "trigger_at",
+        orderDirection: "asc",
+      });
+      return res;
+    },
     [],
   );
 
   const fetchDraftPosts = useCallback(
-    (newsletterUrl: string, offset = 0, limit = 25) =>
-      sendMessage<PostsResponse>("fetchDraftPosts", {
+    async (newsletterUrl: string, offset = 0, limit = 25) => {
+      const res = await sendMessage<PostsResponse>("fetchPosts", {
         newsletterUrl,
+        status: "drafts",
         offset,
         limit,
-      }),
+        orderBy: "draft_updated_at",
+        orderDirection: "desc",
+      });
+      return res;
+    },
     [],
   );
 
   const deleteArticleMany = useCallback(
-    (newsletterUrl: string, postIds: number[]) =>
-      sendMessage<DeleteArticleResult[]>("deleteArticleMany", {
-        newsletterUrl,
-        postIds,
-      }),
+    async (newsletterUrl: string, postIds: number[]) => {
+      const res = await sendMessage<DeleteArticleResult[]>(
+        "deleteArticleMany",
+        {
+          newsletterUrl,
+          postIds,
+        },
+      );
+      return res;
+    },
     [],
   );
 
